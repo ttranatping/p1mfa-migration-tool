@@ -20,3 +20,8 @@ http.max.route=5
 http.timeout.connection=5000
 
 print.report.count=1000
+
+http.proxy.host=
+http.proxy.port=
+http.proxy.username=
+http.proxy.password=
