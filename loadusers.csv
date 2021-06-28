@@ -1,0 +1,4 @@
+username,name.given,name.family,mfa.email,mfa.sms
+bob,Bob,Smith,bob.smith@mailinator.com,
+steve,Steve,Tran,steve.tran@mailinator.com,+61412167942
+jane,Jane,Do,jane.do@mailinator.com,
