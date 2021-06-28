@@ -11,6 +11,10 @@ import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.json.JSONObject;
 
@@ -35,10 +39,11 @@ public class UserRecordConsumer implements Runnable {
 
 	private String currentAccessToken = null;
 	private Long currentAccessTokenExpiresIn = null;
-	
+
 	private int printReportCount = 1000;
 
 	private PoolingHttpClientConnectionManager poolingConnManager = new PoolingHttpClientConnectionManager();
+	private final CredentialsProvider credsProvider;
 
 	public UserRecordConsumer(String consumerName, BlockingQueue<String> queue, Properties configuration,
 			String producerFolder, String consumerFolder, String mode) {
@@ -46,7 +51,7 @@ public class UserRecordConsumer implements Runnable {
 		this.producerFolder = producerFolder;
 		this.consumerFolder = consumerFolder;
 		this.queue = queue;
-		
+
 		this.mode = mode;
 
 		this.authBaseUrl = configuration.getProperty("p1mfa.connection.auth.baseurl", "https://auth.pingone.com");
@@ -59,12 +64,12 @@ public class UserRecordConsumer implements Runnable {
 		int connectionTimeout = Integer.parseInt(configuration.getProperty("http.timeout.connection", "10000"));
 		int maxRoute = Integer.parseInt(configuration.getProperty("http.max.route", "5"));
 		int maxConnections = Integer.parseInt(configuration.getProperty("http.max.connections", "10"));
-		
+
 		printReportCount = Integer.parseInt(configuration.getProperty("print.report.count", "1000"));
-		
+
 		File idUsernameMappingDir = new File(this.consumerFolder + File.separator + "username-id-mappings");
 		idUsernameMappingDir.mkdirs();
-		
+
 		poolingConnManager.setValidateAfterInactivity(connectionTimeout);
 		poolingConnManager.setDefaultMaxPerRoute(maxRoute);
 		poolingConnManager.setMaxTotal(maxConnections);
@@ -73,21 +78,38 @@ public class UserRecordConsumer implements Runnable {
 				? String.format(authBaseUrl + "/%s/as/token", this.envId)
 				: authBaseUrl + "/as/token";
 
+		String proxyHost = configuration.getProperty("http.proxy.host");
+
+		if (proxyHost != null && !proxyHost.trim().equals("")) {
+			int proxyPort = Integer.parseInt(configuration.getProperty("http.proxy.port"));
+
+			UsernamePasswordCredentials credentials = null;
+			String proxyUsername = configuration.getProperty("http.proxy.username");
+
+			if (proxyUsername != null && !proxyUsername.trim().equals("")) 
+				credentials = new UsernamePasswordCredentials(proxyUsername, configuration.getProperty("http.proxy.password"));
+
+			credsProvider = new BasicCredentialsProvider();
+			credsProvider.setCredentials(new AuthScope(proxyHost, proxyPort), credentials);
+		}
+		else
+			credsProvider = null;
+
 	}
 
 	@Override
 	public void run() {
-		
+
 		int counter = 0;
-		
+
 		long start = Instant.now().getEpochSecond();
 
 		while (true) {
-			
+
 			counter++;
-			
+
 			printReport(start, counter);
-			
+
 			if (queue.isEmpty()) {
 				try {
 					Thread.sleep(SLEEP_TIMER);
@@ -102,27 +124,23 @@ public class UserRecordConsumer implements Runnable {
 			}
 
 			String record = null;
-			
+
 			try {
 				record = queue.take();
 				refreshAccessToken();
-				String idMappingFilename = this.consumerFolder + File.separator + "username-id-mappings" + File.separator + record;
-				File idUsernameMapping = new File(idMappingFilename);	
-				
-				if(mode.equalsIgnoreCase("PROVISION-USERS"))
-				{
+				String idMappingFilename = this.consumerFolder + File.separator + "username-id-mappings"
+						+ File.separator + record;
+				File idUsernameMapping = new File(idMappingFilename);
+
+				if (mode.equalsIgnoreCase("PROVISION-USERS")) {
 					String id = createUser(record);
-					
-					if(id != null)
+
+					if (id != null)
 						FileUtils.writeStringToFile(idUsernameMapping, id, Charset.defaultCharset(), false);
-				}
-				else if(mode.equalsIgnoreCase("PROVISION-MFA-EMAIL"))
-				{
+				} else if (mode.equalsIgnoreCase("PROVISION-MFA-EMAIL")) {
 					String id = FileUtils.readFileToString(idUsernameMapping, Charset.defaultCharset()).trim();
 					createMFADevice(record, id, "email");
-				}
-				else if(mode.equalsIgnoreCase("PROVISION-MFA-SMS"))
-				{
+				} else if (mode.equalsIgnoreCase("PROVISION-MFA-SMS")) {
 					String id = FileUtils.readFileToString(idUsernameMapping, Charset.defaultCharset()).trim();
 					createMFADevice(record, id, "sms");
 				}
@@ -136,21 +154,22 @@ public class UserRecordConsumer implements Runnable {
 	}
 
 	private void printReport(long start, int counter) {
-		
-		int remainder = (counter%printReportCount);
-		
-		if(remainder != 0)
+
+		int remainder = (counter % printReportCount);
+
+		if (remainder != 0)
 			return;
-		
+
 		Instant now = Instant.now();
-		
-		long timeDiff = now.getEpochSecond()-start;
-		
-		Float minutes = Float.parseFloat("" + timeDiff)/60;
-		Float tpm = counter/minutes;
-		
-		System.out.println(String.format("Thread: %s, Minutes: %.2f, Tx per minute: %.2f", this.consumerName, minutes, tpm));
-		
+
+		long timeDiff = now.getEpochSecond() - start;
+
+		Float minutes = Float.parseFloat("" + timeDiff) / 60;
+		Float tpm = counter / minutes;
+
+		System.out.println(
+				String.format("Thread: %s, Minutes: %.2f, Tx per minute: %.2f", this.consumerName, minutes, tpm));
+
 	}
 
 	private String refreshAccessToken() {
@@ -174,7 +193,7 @@ public class UserRecordConsumer implements Runnable {
 
 		HttpResponseObj response = null;
 		try {
-			response = MASSLClient.executeHTTP(this.poolingConnManager, this.tokenEndpoint, "POST", headers, params,
+			response = MASSLClient.executeHTTP(this.poolingConnManager, this.credsProvider, this.tokenEndpoint, "POST", headers, params,
 					null, null, null, null, null, false, 30000);
 
 		} catch (Exception e) {
@@ -207,8 +226,7 @@ public class UserRecordConsumer implements Runnable {
 
 	private String createUser(String username) throws IOException {
 
-		String incomingFileName = producerFolder + File.separator
-				+ username;
+		String incomingFileName = producerFolder + File.separator + username;
 		String endpoint = String.format(this.apiBaseUrl + "/environments/%s/users", this.envId);
 
 		return createObject(username, incomingFileName, endpoint);
@@ -216,14 +234,12 @@ public class UserRecordConsumer implements Runnable {
 
 	private String createMFADevice(String username, String id, String mfaType) throws IOException {
 		String incomingFileName = producerFolder + File.separator + username;
-		
-		if(new File(incomingFileName).exists())
-		{
+
+		if (new File(incomingFileName).exists()) {
 			String endpoint = String.format(this.apiBaseUrl + "/environments/%s/users/%s/devices", this.envId, id);
-	
+
 			return createObject(username, incomingFileName, endpoint);
-		}
-		else
+		} else
 			return null;
 
 	}
@@ -240,7 +256,7 @@ public class UserRecordConsumer implements Runnable {
 
 		HttpResponseObj response = null;
 		try {
-			response = MASSLClient.executeHTTP(this.poolingConnManager, endpoint, "POST", headers, fileContent, null,
+			response = MASSLClient.executeHTTP(this.poolingConnManager, this.credsProvider, endpoint, "POST", headers, fileContent, null,
 					null, null, null, null, false, 30000);
 		} catch (Exception e) {
 			System.err.println("Could not receive Access Token:" + e.getMessage());
@@ -248,19 +264,18 @@ public class UserRecordConsumer implements Runnable {
 		}
 
 		String responseBody = response.getResponseBody();
-		
-		String processedFile = this.consumerFolder + File.separator + response.getStatusCode() + File.separator + mode + File.separator + incomingFileName
-				.replace(this.producerFolder, "");
+
+		String processedFile = this.consumerFolder + File.separator + response.getStatusCode() + File.separator + mode
+				+ File.separator + incomingFileName.replace(this.producerFolder, "");
 
 		String processedDirectory = processedFile.substring(0, processedFile.lastIndexOf(File.separator));
 
 		File processedDirectoryFile = new File(processedDirectory);
-		
-		if(response.getStatusCode() != 429)
+
+		if (response.getStatusCode() != 429)
 			FileUtils.moveFileToDirectory(incomingFile, processedDirectoryFile, true);
 
-		FileUtils.write(new File(processedFile + ".response"), responseBody,
-				Charset.defaultCharset(), false);
+		FileUtils.write(new File(processedFile + ".response"), responseBody, Charset.defaultCharset(), false);
 
 		if (response.getStatusCode() == 201) {
 			JSONObject responseObject = new JSONObject(responseBody);

@@ -15,6 +15,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -33,8 +34,8 @@ import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
@@ -53,25 +54,25 @@ public class MASSLClient {
 			keyStoreCache.remove(keystoreIdentifier);
 	}
 
-	public static HttpResponseObj executeGETHTTP(HttpClientConnectionManager poolingConnManager, String url, Map<String, String> headers, String[] httpsProtocolSupport,
+	public static HttpResponseObj executeGETHTTP(HttpClientConnectionManager poolingConnManager, CredentialsProvider credsProvider, String url, Map<String, String> headers, String[] httpsProtocolSupport,
 			String keystoreLocation, String rootCALocation, String keystorePassword, String keystoreType,
 			boolean ignoreSSLErrors, int requestTimeout) throws Exception {
 
-		return executeHTTP(poolingConnManager, url, "GET", headers, new StringEntity(""), httpsProtocolSupport, keystoreLocation,
+		return executeHTTP(poolingConnManager, credsProvider, url, "GET", headers, new StringEntity(""), httpsProtocolSupport, keystoreLocation,
 				rootCALocation, keystorePassword, keystoreType, ignoreSSLErrors, requestTimeout);
 	}
 
-	public static HttpResponseObj executeHTTP(HttpClientConnectionManager poolingConnManager, String url, String method, Map<String, String> headers, String data,
+	public static HttpResponseObj executeHTTP(HttpClientConnectionManager poolingConnManager, CredentialsProvider credsProvider, String url, String method, Map<String, String> headers, String data,
 			String[] httpsProtocolSupport, String keystoreLocation, String rootCALocation, String keystorePassword,
 			String keystoreType, boolean ignoreSSLErrors, int requestTimeout) throws Exception {
 
 		StringEntity entity = new StringEntity(data);
 
-		return executeHTTP(poolingConnManager, url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType,
+		return executeHTTP(poolingConnManager, credsProvider, url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType,
 				rootCALocation, keystorePassword, ignoreSSLErrors, requestTimeout);
 	}
 
-	public static HttpResponseObj executeHTTP(HttpClientConnectionManager poolingConnManager, String url, String method, Map<String, String> headers,
+	public static HttpResponseObj executeHTTP(HttpClientConnectionManager poolingConnManager, CredentialsProvider credsProvider, String url, String method, Map<String, String> headers,
 			Map<String, String> params, String[] httpsProtocolSupport, String keystoreLocation, String rootCALocation,
 			String keystorePassword, String keystoreType, boolean ignoreSSLErrors, int requestTimeout)
 			throws Exception {
@@ -88,11 +89,11 @@ public class MASSLClient {
 
 		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(urlParameters);
 
-		return executeHTTP(poolingConnManager, url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType,
+		return executeHTTP(poolingConnManager, credsProvider, url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType,
 				rootCALocation, keystorePassword, ignoreSSLErrors, requestTimeout);
 	}
 
-	public static HttpResponseObj executeHTTP(HttpClientConnectionManager poolingConnManager, String url, String method, Map<String, String> headers,
+	public static HttpResponseObj executeHTTP(HttpClientConnectionManager poolingConnManager, CredentialsProvider credsProvider, String url, String method, Map<String, String> headers,
 			StringEntity stringEntity, String[] httpsProtocolSupport, String keystoreLocation, String keystoreType,
 			String rootCALocation, String keystorePassword, boolean ignoreSSLErrors, int requestTimeout)
 			throws Exception {
@@ -170,8 +171,13 @@ public class MASSLClient {
 		SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslCtxBuild, httpsProtocolSupport,
 				null, hostnameVerifier);
 		
-		HttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory)
-				.setConnectionManager(poolingConnManager).build();
+		HttpClientBuilder httpClientBuilder = HttpClients.custom().setSSLSocketFactory(socketFactory)
+				.setConnectionManager(poolingConnManager);
+		
+		if(credsProvider != null)
+			httpClientBuilder.setDefaultCredentialsProvider(credsProvider);
+		
+		HttpClient httpClient = httpClientBuilder.build();
 
 		RequestConfig requestCfg = RequestConfig.custom().setConnectTimeout(requestTimeout)
 				.setSocketTimeout(requestTimeout).setConnectionRequestTimeout(requestTimeout).build();
