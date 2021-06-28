@@ -44,7 +44,7 @@ Note that the heading names are mapped to PingOne attributes, so you could popul
 * name.family
 * title
 
-An example can be found [here](~/blob/master/loadusers.csv).
+An example can be found [here](loadusers.csv).
 
 ## Usage
 
