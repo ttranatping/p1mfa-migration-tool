@@ -11,10 +11,10 @@ input.users.csv.file=loadusers.csv
 
 producer.output.folder=out/producer
 
-consumer.threads=20
+consumer.threads=13
 consumer.output.folder=out/consumer
 consumer.queue.size=1000000
 
-http.max.connections=20
+http.max.connections=13
 http.max.route=5
 http.timeout.connection=5000
