@@ -1,4 +1,4 @@
-package com.pingidentity.tools.p1mfa;
+package com.pingidentity.tools.p1mfa.utils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

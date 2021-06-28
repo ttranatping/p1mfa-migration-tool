@@ -1,4 +1,4 @@
-package com.pingidentity.tools.p1mfa;
+package com.pingidentity.tools.p1mfa.runners;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +13,9 @@ import java.util.concurrent.BlockingQueue;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.json.JSONObject;
+
+import com.pingidentity.tools.p1mfa.utils.HttpResponseObj;
+import com.pingidentity.tools.p1mfa.utils.MASSLClient;
 
 public class UserRecordConsumer implements Runnable {
 

@@ -7,6 +7,10 @@ import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import com.pingidentity.tools.p1mfa.runners.ProcessCSV;
+import com.pingidentity.tools.p1mfa.runners.UserRecordConsumer;
+import com.pingidentity.tools.p1mfa.runners.UserRecordProducer;
+
 public class UploadUtility {
 	
 	public static final void main(String[] args) throws IOException {
