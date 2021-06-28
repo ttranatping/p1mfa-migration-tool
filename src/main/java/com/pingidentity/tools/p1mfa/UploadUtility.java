@@ -36,15 +36,22 @@ public class UploadUtility {
 			ProcessCSV producer = new ProcessCSV(configuration, producerFolder);	
 			producer.run();
 		}
-		else if (mode.equalsIgnoreCase("PROVISION"))
+		else if(mode.toUpperCase().startsWith("PROVISION-"))
 		{
+			if(mode.equals("PROVISION-USERS"))
+				producerFolder = producerFolder + File.separator + Constants.FOLDER_CREATE_USERS;
+			else if(mode.equals("PROVISION-MFA-EMAIL"))
+				producerFolder = producerFolder + File.separator + "mfa-email";
+			else if(mode.equals("PROVISION-MFA-SMS"))
+				producerFolder = producerFolder + File.separator + "mfa-sms";
+			
 			UserRecordProducer producer = new UserRecordProducer(queue, configuration, producerFolder);
 	
 			new Thread(producer).start();
 	
 			for (int count = 0; count < consumerThreads; count++) {
 				UserRecordConsumer consumer = new UserRecordConsumer("consumer" + count, queue, configuration,
-						producerFolder, consumerFolder);
+						producerFolder, consumerFolder, mode);
 				new Thread(consumer).start();
 	
 			}

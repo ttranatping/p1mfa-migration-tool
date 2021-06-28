@@ -11,7 +11,7 @@ public class UserRecordProducer implements Runnable {
 
 	public UserRecordProducer(BlockingQueue<String> queue, Properties configuration, String producerFolder) {
 		this.queue = queue;			
-		this.producerFolder = producerFolder + File.separator + Constants.FOLDER_CREATE_USERS;
+		this.producerFolder = producerFolder;
 	}
 
 	@Override

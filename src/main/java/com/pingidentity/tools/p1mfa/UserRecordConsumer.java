@@ -20,7 +20,6 @@ public class UserRecordConsumer implements Runnable {
 
 	private final String consumerName, producerFolder, consumerFolder;
 	private final BlockingQueue<String> queue;
-	private final Properties configuration;
 
 	private final String authBaseUrl;
 	private final String apiBaseUrl;
@@ -29,6 +28,7 @@ public class UserRecordConsumer implements Runnable {
 	private final String clientSecret;
 	private final String envId;
 	private final String tokenEndpoint;
+	private final String mode;
 
 	private String currentAccessToken = null;
 	private Long currentAccessTokenExpiresIn = null;
@@ -36,12 +36,13 @@ public class UserRecordConsumer implements Runnable {
 	private PoolingHttpClientConnectionManager poolingConnManager = new PoolingHttpClientConnectionManager();
 
 	public UserRecordConsumer(String consumerName, BlockingQueue<String> queue, Properties configuration,
-			String producerFolder, String consumerFolder) {
+			String producerFolder, String consumerFolder, String mode) {
 		this.consumerName = consumerName;
 		this.producerFolder = producerFolder;
 		this.consumerFolder = consumerFolder;
 		this.queue = queue;
-		this.configuration = configuration;
+		
+		this.mode = mode;
 
 		this.authBaseUrl = configuration.getProperty("p1mfa.connection.auth.baseurl", "https://auth.pingone.com");
 		this.apiBaseUrl = configuration.getProperty("p1mfa.connection.api.baseurl", "https://api.pingone.com/v1");
@@ -49,6 +50,17 @@ public class UserRecordConsumer implements Runnable {
 		this.clientId = configuration.getProperty("p1mfa.connection.client.id", "");
 		this.clientSecret = configuration.getProperty("p1mfa.connection.client.secret", "");
 		this.envId = configuration.getProperty("p1mfa.environment.id", "");
+
+		int connectionTimeout = Integer.parseInt(configuration.getProperty("http.timeout.connection", "10000"));
+		int maxRoute = Integer.parseInt(configuration.getProperty("http.max.route", "5"));
+		int maxConnections = Integer.parseInt(configuration.getProperty("http.max.connections", "10"));
+		
+		File idUsernameMappingDir = new File(this.consumerFolder + File.separator + "username-id-mappings");
+		idUsernameMappingDir.mkdirs();
+		
+		poolingConnManager.setValidateAfterInactivity(connectionTimeout);
+		poolingConnManager.setDefaultMaxPerRoute(maxRoute);
+		poolingConnManager.setMaxTotal(maxConnections);
 
 		this.tokenEndpoint = (this.envId != null && !this.envId.trim().equals(""))
 				? String.format(authBaseUrl + "/%s/as/token", this.envId)
@@ -76,14 +88,25 @@ public class UserRecordConsumer implements Runnable {
 			String record = null;
 			try {
 				record = queue.take();
-				System.out.println(this.consumerName + ":" + record);
-
 				refreshAccessToken();
-
-				String id = createUser(record);
-
-				if (id != null) {
+				String idMappingFilename = this.consumerFolder + File.separator + "username-id-mappings" + File.separator + record;
+				File idUsernameMapping = new File(idMappingFilename);	
+				
+				if(mode.equalsIgnoreCase("PROVISION-USERS"))
+				{
+					String id = createUser(record);
+					
+					if(id != null)
+						FileUtils.writeStringToFile(idUsernameMapping, id, Charset.defaultCharset(), false);
+				}
+				else if(mode.equalsIgnoreCase("PROVISION-MFA-EMAIL"))
+				{
+					String id = FileUtils.readFileToString(idUsernameMapping, Charset.defaultCharset()).trim();
 					createMFADevice(record, id, "email");
+				}
+				else if(mode.equalsIgnoreCase("PROVISION-MFA-SMS"))
+				{
+					String id = FileUtils.readFileToString(idUsernameMapping, Charset.defaultCharset()).trim();
 					createMFADevice(record, id, "sms");
 				}
 
@@ -149,7 +172,7 @@ public class UserRecordConsumer implements Runnable {
 
 	private String createUser(String username) throws IOException {
 
-		String incomingFileName = producerFolder + File.separator + Constants.FOLDER_CREATE_USERS + File.separator
+		String incomingFileName = producerFolder + File.separator
 				+ username;
 		String endpoint = String.format(this.apiBaseUrl + "/environments/%s/users", this.envId);
 
@@ -157,7 +180,7 @@ public class UserRecordConsumer implements Runnable {
 	}
 
 	private String createMFADevice(String username, String id, String mfaType) throws IOException {
-		String incomingFileName = producerFolder + File.separator + "mfa-" + mfaType + File.separator + username;
+		String incomingFileName = producerFolder + File.separator + username;
 		
 		if(new File(incomingFileName).exists())
 		{
@@ -170,7 +193,7 @@ public class UserRecordConsumer implements Runnable {
 
 	}
 
-	public String createObject(String username, String incomingFileName, String endpoint) throws IOException {
+	private String createObject(String username, String incomingFileName, String endpoint) throws IOException {
 
 		File incomingFile = new File(incomingFileName);
 
@@ -191,14 +214,15 @@ public class UserRecordConsumer implements Runnable {
 
 		String responseBody = response.getResponseBody();
 		
-		String processedFile = this.consumerFolder + File.separator + response.getStatusCode() + incomingFileName
+		String processedFile = this.consumerFolder + File.separator + response.getStatusCode() + File.separator + mode + File.separator + incomingFileName
 				.replace(this.producerFolder, "");
 
 		String processedDirectory = processedFile.substring(0, processedFile.lastIndexOf(File.separator));
 
 		File processedDirectoryFile = new File(processedDirectory);
 		
-		FileUtils.moveFileToDirectory(incomingFile, processedDirectoryFile, true);
+		if(response.getStatusCode() != 429)
+			FileUtils.moveFileToDirectory(incomingFile, processedDirectoryFile, true);
 
 		FileUtils.write(new File(processedFile + ".response"), responseBody,
 				Charset.defaultCharset(), false);
