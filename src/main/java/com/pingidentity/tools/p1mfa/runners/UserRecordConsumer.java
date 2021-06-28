@@ -35,6 +35,8 @@ public class UserRecordConsumer implements Runnable {
 
 	private String currentAccessToken = null;
 	private Long currentAccessTokenExpiresIn = null;
+	
+	private int printReportCount = 1000;
 
 	private PoolingHttpClientConnectionManager poolingConnManager = new PoolingHttpClientConnectionManager();
 
@@ -58,6 +60,8 @@ public class UserRecordConsumer implements Runnable {
 		int maxRoute = Integer.parseInt(configuration.getProperty("http.max.route", "5"));
 		int maxConnections = Integer.parseInt(configuration.getProperty("http.max.connections", "10"));
 		
+		printReportCount = Integer.parseInt(configuration.getProperty("print.report.count", "1000"));
+		
 		File idUsernameMappingDir = new File(this.consumerFolder + File.separator + "username-id-mappings");
 		idUsernameMappingDir.mkdirs();
 		
@@ -73,8 +77,17 @@ public class UserRecordConsumer implements Runnable {
 
 	@Override
 	public void run() {
+		
+		int counter = 0;
+		
+		long start = Instant.now().getEpochSecond();
 
 		while (true) {
+			
+			counter++;
+			
+			printReport(start, counter);
+			
 			if (queue.isEmpty()) {
 				try {
 					Thread.sleep(SLEEP_TIMER);
@@ -89,6 +102,7 @@ public class UserRecordConsumer implements Runnable {
 			}
 
 			String record = null;
+			
 			try {
 				record = queue.take();
 				refreshAccessToken();
@@ -119,6 +133,24 @@ public class UserRecordConsumer implements Runnable {
 			}
 		}
 
+	}
+
+	private void printReport(long start, int counter) {
+		
+		int remainder = (counter%printReportCount);
+		
+		if(remainder != 0)
+			return;
+		
+		Instant now = Instant.now();
+		
+		long timeDiff = now.getEpochSecond()-start;
+		
+		Float minutes = Float.parseFloat("" + timeDiff)/60;
+		Float tpm = counter/minutes;
+		
+		System.out.println(String.format("Thread: %s, Minutes: %.2f, Tx per minute: %.2f", this.consumerName, minutes, tpm));
+		
 	}
 
 	private String refreshAccessToken() {

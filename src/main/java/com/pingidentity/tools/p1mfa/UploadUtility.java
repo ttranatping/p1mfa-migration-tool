@@ -26,12 +26,17 @@ public class UploadUtility {
 		
 		Properties configuration = new Properties();
 		configuration.load(new FileInputStream(new File(configFile)));
+
+		String producerFolder = configuration.getProperty("producer.output.folder", "output/producer");	
+		if(args.length > 2)
+			producerFolder = args[2];
+		
+		String consumerFolder = configuration.getProperty("consumer.output.folder", "output/consumer");		
+		if(args.length > 3)
+			consumerFolder = args[3];
 		
 		int consumerThreads = Integer.parseInt(configuration.getProperty("consumer.threads", "10"));
 		int queueSize = Integer.parseInt(configuration.getProperty("consumer.queue.size", "100000"));
-
-		String producerFolder = configuration.getProperty("producer.output.folder", "output/producer");		
-		String consumerFolder = configuration.getProperty("consumer.output.folder", "output/consumer");		
 		
 		BlockingQueue<String> queue = new ArrayBlockingQueue<String>(queueSize);
 

@@ -18,3 +18,5 @@ consumer.queue.size=1000000
 http.max.connections=13
 http.max.route=5
 http.timeout.connection=5000
+
+print.report.count=1000
