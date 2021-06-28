@@ -11,7 +11,7 @@ public class UploadUtility {
 	
 	public static final void main(String[] args) throws IOException {
 
-		String mode = "PROVISION";
+		String mode = "CREATE";
 		
 		if(args.length > 0)
 			mode = args[0];

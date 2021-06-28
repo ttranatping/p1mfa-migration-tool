@@ -1,8 +1,11 @@
-p1mfa.population.id=60d4c871-6475-41e9-bce3-a851c3773d47
-p1mfa.user.mfa.enabled=true
-p1mfa.user.mfa.type=EMAIL,SMS
-p1mfa.user.mfa.attribute=email
-p1mfa.user.mfa.claim=email
+p1mfa.environment.id=
+p1mfa.population.id=
+
+p1mfa.connection.auth.baseurl=https://auth.pingone.asia
+p1mfa.connection.api.baseurl=https://api.pingone.asia/v1
+p1mfa.connection.client.id=
+p1mfa.connection.client.secret=
+p1mfa.connection.client.scopes=
 
 input.users.csv.file=loadusers.csv
 
