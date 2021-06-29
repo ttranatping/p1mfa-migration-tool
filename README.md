@@ -52,8 +52,11 @@ The utility is performed in 3 stages. Separating the stages allows the migration
 
 Stages:
 1. Process CSV into individual API calls. This allows the migration tool to retry events e.g. if rate limiting has been reached.
-2. Provision users. Optional - only required if the user doesn't exist.
-3. Provision MFA (SMS/Email). Optional - only required if provisioning MFA device(s).
+2. Provision users. 
+    * Optional - only required if the user doesn't exist.
+3. Provision MFA (SMS/Email). 
+    * Optional - only required if provisioning MFA device(s).
+    * Note: Running Provision MFA without provisioning users will require an additional lookup to PingOne (to resolve username-id mapping). This will need to be taken into consideration when determining number of threads to stay within the 100 TPS thresholds. 
 
 ### Process CSV
 
