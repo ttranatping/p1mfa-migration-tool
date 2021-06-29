@@ -58,55 +58,55 @@ Stages:
 ### Process CSV
 
 This command processes the CSV file and prepares Admin API calls. The processed Admin API calls are stored in the producer output folder. 
-* In the command below, the API calls are persisted under the "out4/producer" folder.
+* In the command below, the API calls are persisted under the "migration-1234/input" folder.
 * The calls are split up between createusers, mfa-sms and/or mfa-email.
 
 Command: 
 
-> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar CREATE config.properties "out4/producer" "out4/consumer"
+> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar CREATE config.properties "migration-1234/input" "migration-1234/output"
 
 
 ### Provision Users
 
 This command processes the create users Admin API calls. 
-* It iterates through all of the records found under the producer createusers directory. In the command below, the Admin API calls are found under out4/producer/createusers.
+* It iterates through all of the records found under the producer createusers directory. In the command below, the Admin API calls are found under migration-1234/input/createusers.
 * The results are stored in the consumer folder according to HTTP Status codes.
-    * 429 - Too Many Requests. These will remain unprocessed and in the producer folder (out4/producer/createusers).
-    * 201 - Success. These calls are moved from the producer folder to the consumer folder (out4/consumer/201/createusers).
-         * The response is retained for record with the filename <record>.response. E.g. out4/consumer/201/createusers/username.response.
-    * 400/Other - Fail. These calls are moved from the producer folder to the consumer folder (out4/consumer/400/createusers).
-         * The response is retained for troubleshooting with the filename <record>.response. E.g. out4/consumer/400/createusers/username.response.
+    * 429 - Too Many Requests. These will remain unprocessed and in the producer folder (migration-1234/input/createusers).
+    * 201 - Success. These calls are moved from the producer folder to the consumer folder (migration-1234/output/201/createusers).
+         * The response is retained for record with the filename <record>.response. E.g. migration-1234/output/201/createusers/username.response.
+    * 400/Other - Fail. These calls are moved from the producer folder to the consumer folder (migration-1234/output/400/createusers).
+         * The response is retained for troubleshooting with the filename <record>.response. E.g. migration-1234/output/400/createusers/username.response.
 
 Command:
 
-> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar PROVISION-USERS config.properties "out4/producer" "out4/consumer"
+> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar PROVISION-USERS config.properties "migration-1234/input" "migration-1234/output"
 
 
 ### Provision MFA Devices - SMS
 
-* It iterates through all of the records found under the producer mfa-sms directory. In the command below, the Admin API calls are found under out4/producer/mfa-sms.
+* It iterates through all of the records found under the producer mfa-sms directory. In the command below, the Admin API calls are found under migration-1234/input/mfa-sms.
 * The results are stored in the consumer folder according to HTTP Status codes.
-    * 429 - Too Many Requests. These will remain unprocessed and in the producer folder (out4/producer/mfa-sms).
-    * 201 - Success. These calls are moved from the producer folder to the consumer folder (out4/consumer/201/mfa-sms).
-         * The response is retained for record with the filename <record>.response. E.g. out4/consumer/201/mfa-sms/username.response.
-    * 400/Other - Fail. These calls are moved from the producer folder to the consumer folder (out4/consumer/400/mfa-sms).
-         * The response is retained for troubleshooting with the filename <record>.response. E.g. out4/consumer/400/mfa-sms/username.response.
+    * 429 - Too Many Requests. These will remain unprocessed and in the producer folder (migration-1234/input/mfa-sms).
+    * 201 - Success. These calls are moved from the producer folder to the consumer folder (migration-1234/output/201/mfa-sms).
+         * The response is retained for record with the filename <record>.response. E.g. migration-1234/output/201/mfa-sms/username.response.
+    * 400/Other - Fail. These calls are moved from the producer folder to the consumer folder (migration-1234/output/400/mfa-sms).
+         * The response is retained for troubleshooting with the filename <record>.response. E.g. migration-1234/output/400/mfa-sms/username.response.
          
 Command:
 
-> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar PROVISION-MFA-SMS config.properties "out4/producer" "out4/consumer"
+> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar PROVISION-MFA-SMS config.properties "migration-1234/input" "migration-1234/output"
 
 
 ### Provision MFA Devices - Email
 
-* It iterates through all of the records found under the producer mfa-email directory. In the command below, the Admin API calls are found under out4/producer/mfa-email.
+* It iterates through all of the records found under the producer mfa-email directory. In the command below, the Admin API calls are found under migration-1234/input/mfa-email.
 * The results are stored in the consumer folder according to HTTP Status codes.
-    * 429 - Too Many Requests. These will remain unprocessed and in the producer folder (out4/producer/mfa-email).
-    * 201 - Success. These calls are moved from the producer folder to the consumer folder (out4/consumer/201/mfa-email).
-         * The response is retained for record with the filename <record>.response. E.g. out4/consumer/201/mfa-email/username.response.
-    * 400/Other - Fail. These calls are moved from the producer folder to the consumer folder (out4/consumer/400/mfa-email).
-         * The response is retained for troubleshooting with the filename <record>.response. E.g. out4/consumer/400/mfa-email/username.response.
+    * 429 - Too Many Requests. These will remain unprocessed and in the producer folder (migration-1234/input/mfa-email).
+    * 201 - Success. These calls are moved from the producer folder to the consumer folder (migration-1234/output/201/mfa-email).
+         * The response is retained for record with the filename <record>.response. E.g. migration-1234/output/201/mfa-email/username.response.
+    * 400/Other - Fail. These calls are moved from the producer folder to the consumer folder (migration-1234/output/400/mfa-email).
+         * The response is retained for troubleshooting with the filename <record>.response. E.g. migration-1234/output/400/mfa-email/username.response.
          
 Command:
 
-> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar PROVISION-MFA-SMS config.properties "out4/producer" "out4/consumer"
+> java -jar target/p1mfaupload-0.0.1-jar-with-dependencies.jar PROVISION-MFA-SMS config.properties "migration-1234/input" "migration-1234/output"
