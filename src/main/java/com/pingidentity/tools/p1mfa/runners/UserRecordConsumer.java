@@ -2,6 +2,7 @@ package com.pingidentity.tools.p1mfa.runners;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.Date;
@@ -138,10 +139,10 @@ public class UserRecordConsumer implements Runnable {
 					if (id != null)
 						FileUtils.writeStringToFile(idUsernameMapping, id, Charset.defaultCharset(), false);
 				} else if (mode.equalsIgnoreCase("PROVISION-MFA-EMAIL")) {
-					String id = FileUtils.readFileToString(idUsernameMapping, Charset.defaultCharset()).trim();
+					String id = getUserId(record, idUsernameMapping);
 					createMFADevice(record, id, "email");
 				} else if (mode.equalsIgnoreCase("PROVISION-MFA-SMS")) {
-					String id = FileUtils.readFileToString(idUsernameMapping, Charset.defaultCharset()).trim();
+					String id = getUserId(record, idUsernameMapping);
 					createMFADevice(record, id, "sms");
 				}
 
@@ -151,6 +152,23 @@ public class UserRecordConsumer implements Runnable {
 			}
 		}
 
+	}
+
+	private String getUserId(String username, File idUsernameMapping) throws IOException {
+		String id = null;
+		
+		if(idUsernameMapping.exists())
+			id = FileUtils.readFileToString(idUsernameMapping, Charset.defaultCharset()).trim();
+		
+		if(id != null && !id.trim().equals(""))
+			return id;
+		
+		JSONObject userObject = this.getUserObject(username);
+		
+		if(userObject != null && userObject.has("id"))
+			return userObject.getString("id");
+		
+		return null;
 	}
 
 	private void printReport(long start, int counter) {
@@ -283,6 +301,65 @@ public class UserRecordConsumer implements Runnable {
 			return responseObject.getString("id");
 		} else
 			return null;
+	}
+	
+	private JSONObject getUserObject(String username)
+	{
+		String filter = String.format("username eq \"%s\"", username);
+		
+		filter = URLEncoder.encode(filter, Charset.forName("UTF-8"));
+		
+		String endpoint = String.format(this.apiBaseUrl + "/environments/%s/users?filter=%s", this.envId, filter);
+		
+		Map<String, String> headers = new HashMap<String, String>();
+		headers.put("Content-Type", "application/json");
+		headers.put("Authorization", "Bearer " + this.currentAccessToken);
+
+		HttpResponseObj response = null;
+		try {
+			response = MASSLClient.executeGETHTTP(this.poolingConnManager, this.credsProvider, endpoint, headers, null,
+					null, null, null, null, false, 30000);
+		} catch (Exception e) {
+			System.err.println("Could not receive Access Token:" + e.getMessage());
+			return null;
+		}
+		
+		if(response == null)
+		{
+			System.err.println("Unable to locate user: " + username);			
+			return null;
+		}
+		
+		if(response.getStatusCode() != 200)
+		{
+			System.err.println("Unable to locate user. Bad HTTP Status.: " + username + "," + response.getStatusCode());			
+			return null;
+		}
+		
+		JSONObject responseObject = new JSONObject(response.getResponseBody());
+		
+		if(!responseObject.has("size"))
+		{
+			System.err.println("Unable to locate user. No response size.: " + username);			
+			return null;
+		}
+		else if(!responseObject.has("size") || responseObject.getInt("size") != 1)
+		{
+			System.err.println("Unable to locate user. Bad response size.: " + username + "," + responseObject.getInt("size"));			
+			return null;
+		}
+		
+		Object firstUser = responseObject.optQuery("/_embedded/users/0");
+		if(firstUser == null)
+		{
+			System.err.println("Unable to locate user. First user is null.: " + username);			
+			return null;
+		}
+		
+		JSONObject firstUserJSON = (JSONObject)firstUser;
+			
+		
+		return firstUserJSON;
 	}
 
 }
