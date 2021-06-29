@@ -50,6 +50,11 @@ An example can be found [here](loadusers.csv).
 
 The utility is performed in 3 stages. Separating the stages allows the migration admin to stage their imports, processing users to its entirety before adding MFA devices. This is particularly useful as "429-Too Many Requests" can simply be retried by running the tool again until all records have completed.
 
+Stages:
+1. Process CSV into individual API calls. This allows the migration tool to retry events e.g. if rate limiting has been reached.
+2. Provision users. Optional - only required if the user doesn't exist.
+3. Provision MFA (SMS/Email). Optional - only required if provisioning MFA device(s).
+
 ### Process CSV
 
 This command processes the CSV file and prepares Admin API calls. The processed Admin API calls are stored in the producer output folder. 
