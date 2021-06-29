@@ -7,17 +7,19 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.pingidentity.tools.p1mfa.Constants;
 
 public class ProcessCSV implements Runnable {
+	
+	private final Logger logger = Logger.getLogger(ProcessCSV.class);
 	
 	private final Properties configuration;
 	private final String populationId, producerFolder;
@@ -41,11 +43,11 @@ public class ProcessCSV implements Runnable {
 			in = new FileReader(configuration.getProperty("input.users.csv.file", "users.csv"));
 			records = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(in);
 		} catch (IOException e) {
-			System.err.println("Exception not load users CSV file: " + e.getMessage());
+			logger.error("Exception not load users CSV file", e);
 		}
 		
 		if(records == null)
-			System.err.println("Could not load users CSV file");
+			logger.error("Could not load users CSV file");
 		else
 		{
 			int counter = 0;
@@ -57,8 +59,7 @@ public class ProcessCSV implements Runnable {
 				counter++;
 			}
 			
-			
-			System.out.printf("Added %s to the processing queue.\n\n", counter);
+			logger.info(String.format("Added %s to the processing queue.\n\n", counter));
 		}
 		
 	}
@@ -98,14 +99,14 @@ public class ProcessCSV implements Runnable {
 				else
 					continue;
 				
-				String fileName = producerFolder + File.separator + "mfa-" + mfaType + File.separator + record.get("username");
+				String fileName = producerFolder + File.separator + Constants.FOLDER_MFA_PREFIX + mfaType + File.separator + record.get("username");
 								
 				File producerRecordFile = new File(fileName);
 
 				try {
 					FileUtils.writeStringToFile(producerRecordFile, jsonObject.toString(4), Charset.defaultCharset(), false);
 				} catch (JSONException | IOException e) {
-					System.err.println("Unable to write to file: " + fileName + ", e: " + e.getMessage());
+					logger.error("Unable to write to file: " + fileName, e);
 				}
 			}
 		}
@@ -157,7 +158,7 @@ public class ProcessCSV implements Runnable {
 			
 			return;
 		} catch (IOException e) {
-			System.err.println("Unable to write to file: " + fileName + ", e: " + e.getMessage());
+			logger.error("Unable to write to file: " + fileName, e);
 		}
 	}
 

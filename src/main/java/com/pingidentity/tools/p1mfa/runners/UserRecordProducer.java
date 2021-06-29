@@ -4,8 +4,12 @@ import java.io.File;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.log4j.Logger;
+
 public class UserRecordProducer implements Runnable {
 	
+	private final Logger logger = Logger.getLogger(UserRecordProducer.class);
+			
 	private final BlockingQueue<String> queue;
 	private final String producerFolder;
 
@@ -24,7 +28,7 @@ public class UserRecordProducer implements Runnable {
 			try {
 				queue.put(fileName);
 			} catch (InterruptedException e) {
-				System.err.println("Error adding filename to queue: " + fileName);
+				logger.error("Error adding filename to queue: " + fileName, e);
 			}
 		}
 		

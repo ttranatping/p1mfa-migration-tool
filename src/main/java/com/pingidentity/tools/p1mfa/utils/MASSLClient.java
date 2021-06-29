@@ -11,8 +11,6 @@ import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.CredentialsProvider;
@@ -39,10 +37,10 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
+import org.apache.log4j.Logger;
 
 public class MASSLClient {
-
-	private final static Log LOGGER = LogFactory.getLog(MASSLClient.class);
+	private final static Logger LOGGER = Logger.getLogger(MASSLClient.class);
 
 	private final static HostnameVerifier DEFAULT_HOSTNAMEVERIFIER = SSLConnectionSocketFactory
 			.getDefaultHostnameVerifier();

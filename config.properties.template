@@ -25,3 +25,9 @@ http.proxy.host=
 http.proxy.port=
 http.proxy.username=
 http.proxy.password=
+
+log4j.rootLogger=OFF
+log4j.logger.com.pingidentity=INFO, Appender1
+log4j.appender.Appender1=org.apache.log4j.ConsoleAppender
+log4j.appender.Appender1.layout=org.apache.log4j.PatternLayout
+log4j.appender.Appender1.layout.ConversionPattern=%-7p %d [%t] %c %x - %m%n

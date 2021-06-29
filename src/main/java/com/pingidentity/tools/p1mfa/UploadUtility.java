@@ -7,6 +7,8 @@ import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.log4j.PropertyConfigurator;
+
 import com.pingidentity.tools.p1mfa.runners.ProcessCSV;
 import com.pingidentity.tools.p1mfa.runners.UserRecordConsumer;
 import com.pingidentity.tools.p1mfa.runners.UserRecordProducer;
@@ -39,7 +41,9 @@ public class UploadUtility {
 		int queueSize = Integer.parseInt(configuration.getProperty("consumer.queue.size", "100000"));
 		
 		BlockingQueue<String> queue = new ArrayBlockingQueue<String>(queueSize);
-
+		
+		PropertyConfigurator.configure(configuration);
+		
 		if(mode.equalsIgnoreCase("CREATE"))
 		{
 			ProcessCSV producer = new ProcessCSV(configuration, producerFolder);	
@@ -50,9 +54,9 @@ public class UploadUtility {
 			if(mode.equals("PROVISION-USERS"))
 				producerFolder = producerFolder + File.separator + Constants.FOLDER_CREATE_USERS;
 			else if(mode.equals("PROVISION-MFA-EMAIL"))
-				producerFolder = producerFolder + File.separator + "mfa-email";
+				producerFolder = producerFolder + File.separator + Constants.FOLDER_MFA_EMAIL;
 			else if(mode.equals("PROVISION-MFA-SMS"))
-				producerFolder = producerFolder + File.separator + "mfa-sms";
+				producerFolder = producerFolder + File.separator + Constants.FOLDER_MFA_SMS;
 			
 			UserRecordProducer producer = new UserRecordProducer(queue, configuration, producerFolder);
 	

@@ -17,6 +17,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
 import com.pingidentity.tools.p1mfa.utils.HttpResponseObj;
@@ -24,6 +25,8 @@ import com.pingidentity.tools.p1mfa.utils.MASSLClient;
 
 public class UserRecordConsumer implements Runnable {
 
+	private final Logger logger = Logger.getLogger(UserRecordConsumer.class);
+	
 	private static final long SLEEP_TIMER = 5000;
 
 	private final String consumerName, producerFolder, consumerFolder;
@@ -119,7 +122,7 @@ public class UserRecordConsumer implements Runnable {
 				}
 
 				if (queue.isEmpty()) {
-					System.out.println("Queue is empty, terminating consumer: " + this.consumerName);
+					logger.info("Queue is empty, terminating consumer: " + this.consumerName);
 					break;
 				}
 			}
@@ -147,7 +150,7 @@ public class UserRecordConsumer implements Runnable {
 				}
 
 			} catch (InterruptedException | IOException e) {
-				System.err.println("Failed to take queue item. E:" + e.getMessage());
+				logger.error("Failed to take queue item.", e);
 				return;
 			}
 		}
@@ -185,8 +188,7 @@ public class UserRecordConsumer implements Runnable {
 		Float minutes = Float.parseFloat("" + timeDiff) / 60;
 		Float tpm = counter / minutes;
 
-		System.out.println(
-				String.format("Thread: %s, Minutes: %.2f, Tx per minute: %.2f", this.consumerName, minutes, tpm));
+		logger.info(String.format("Thread: %s, Minutes: %.2f, Tx per minute: %.2f", this.consumerName, minutes, tpm));
 
 	}
 
@@ -197,7 +199,7 @@ public class UserRecordConsumer implements Runnable {
 			return this.currentAccessToken;
 		}
 
-		System.out.println("Getting new access_token");
+		logger.info("Getting new access_token");
 
 		Map<String, String> headers = new HashMap<String, String>();
 
@@ -215,17 +217,17 @@ public class UserRecordConsumer implements Runnable {
 					null, null, null, null, null, false, 30000);
 
 		} catch (Exception e) {
-			System.err.println("Could not receive Access Token:" + e.getMessage());
+			logger.error("Could not receive Access Token", e);
 			return null;
 		}
 
 		if (response == null) {
-			System.err.println("Could not receive Access Token. HTTP Response is null");
+			logger.error("Could not receive Access Token. HTTP Response is null");
 			return null;
 		}
 
 		if (response.getStatusCode() != 200) {
-			System.err.println("Could not receive Access Token. HTTP Response status is: " + response.getStatusCode());
+			logger.error("Could not receive Access Token. HTTP Response status is: " + response.getStatusCode());
 			return null;
 		}
 
@@ -277,7 +279,7 @@ public class UserRecordConsumer implements Runnable {
 			response = MASSLClient.executeHTTP(this.poolingConnManager, this.credsProvider, endpoint, "POST", headers, fileContent, null,
 					null, null, null, null, false, 30000);
 		} catch (Exception e) {
-			System.err.println("Could not receive Access Token:" + e.getMessage());
+			logger.error("Could not receive Access Token", e);
 			return null;
 		}
 
@@ -320,19 +322,19 @@ public class UserRecordConsumer implements Runnable {
 			response = MASSLClient.executeGETHTTP(this.poolingConnManager, this.credsProvider, endpoint, headers, null,
 					null, null, null, null, false, 30000);
 		} catch (Exception e) {
-			System.err.println("Could not receive Access Token:" + e.getMessage());
+			logger.error("Could not receive Access Token", e);
 			return null;
 		}
 		
 		if(response == null)
 		{
-			System.err.println("Unable to locate user: " + username);			
+			logger.error("Unable to locate user: " + username);			
 			return null;
 		}
 		
 		if(response.getStatusCode() != 200)
 		{
-			System.err.println("Unable to locate user. Bad HTTP Status.: " + username + "," + response.getStatusCode());			
+			logger.error("Unable to locate user. Bad HTTP Status.: " + username + "," + response.getStatusCode());			
 			return null;
 		}
 		
@@ -340,19 +342,19 @@ public class UserRecordConsumer implements Runnable {
 		
 		if(!responseObject.has("size"))
 		{
-			System.err.println("Unable to locate user. No response size.: " + username);			
+			logger.error("Unable to locate user. No response size.: " + username);			
 			return null;
 		}
 		else if(!responseObject.has("size") || responseObject.getInt("size") != 1)
 		{
-			System.err.println("Unable to locate user. Bad response size.: " + username + "," + responseObject.getInt("size"));			
+			logger.error("Unable to locate user. Bad response size.: " + username + "," + responseObject.getInt("size"));			
 			return null;
 		}
 		
 		Object firstUser = responseObject.optQuery("/_embedded/users/0");
 		if(firstUser == null)
 		{
-			System.err.println("Unable to locate user. First user is null.: " + username);			
+			logger.error("Unable to locate user. First user is null.: " + username);			
 			return null;
 		}
 		
